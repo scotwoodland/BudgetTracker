@@ -1,14 +1,14 @@
-# Budget-Tracker
-### PWA Budget-Tracker
-To manage budget and track activities even in offline mode.
+# 18 - Budget Tracker
 
-This app helps users to track their spending and keep up their offline financial activites and put them online when connected.
-- - -
+## Description
 
-#### Functionalities
-Captures following in both offline and online mode
-- __Expenses__ 
-- __Deposits__ 
+Using Express, Mongoose, and Mongodb, this app will allow the user to track their budget allowing them to enter current transactions, (both income and expendatures, and view the model in a graph format. Will maintain a record through the mongodb.
 
-Offline transactions would be pushed when user comes online
+### Screenshot
+![Screenshot of Budget Tracker home page](public/icons/Screenshot.JPG)
 
+#### Link to Deployed Application
+[Github Link](https://github.com/scotwoodland/BudgetTracker) is hosted on Github pages.
+[Deployed URL Link](https://mighty-hollows-04975.herokuapp.com/) is hosted on Heroku.
+
+This application was authored by Scot Woodland.
