@@ -3,14 +3,14 @@ const path = require("path");
 
 const config = {
   entry: {
-    app: "./public/index.js"
+    app: "./public/index.js",
   },
   output: {
     path: __dirname + "/public/dist",
-    filename: "[name].bundle.js"
+    filename: "[name].bundle.js",
   },
   mode: "production",
-  
+
   plugins: [
     new WebpackPwaManifest({
       name: "Budget Tracker",
@@ -20,26 +20,14 @@ const config = {
       theme_color: "#ffffff",
       start_url: "/",
       display: "standalone",
-      icons: [{
-        src: path.resolve(__dirname, "public/icons/icon-192x192.png"),
-        size: [192,512],
-      }]
-    })
+      icons: [
+        {
+          src: path.resolve(__dirname, "public/icons/icon-192x192.png"),
+          size: [192, 512],
+        },
+      ],
+    }),
   ],
- /* module: {
-    rules: [
-      {
-        test: /\.m?js$/,
-        exclude: /(node_modules)/,
-        use: {
-          loader: "babel-loader",
-          options: {
-            presets: ["@babel/preset-env"]
-          }
-        }
-      }
-    ]
-  }*/
 };
 
 module.exports = config;

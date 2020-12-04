@@ -1,82 +1,77 @@
 let transactions = [];
 let myChart;
 loadPage();
-function loadPage(){
-  useIndexedDB("budgets","trasactStore", "get").then(results => {
+function loadPage() {
+  useIndexedDB("budgets", "trasactStore", "get").then((results) => {
     console.log(results);
-    if (results.length > 0){
+    if (results.length > 0) {
       fetch("/api/transaction/bulk", {
         method: "POST",
         body: JSON.stringify(results),
         headers: {
           Accept: "application/json, text/plain, */*",
-          "Content-Type": "application/json"
-        }
-      })
-      .then(response => {    
+          "Content-Type": "application/json",
+        },
+      }).then((response) => {
         return response.json();
       });
-      useIndexedDB("budgets","trasactStore", "clear");
+      useIndexedDB("budgets", "trasactStore", "clear");
     }
   });
   renderTransaction();
 }
 
-function renderTransaction(){
-fetch("/api/transaction")
-  .then(response => {
-    return response.json();
-  })
-  .then(data => {
-    // save db data on global variable
-    transactions = data;
+function renderTransaction() {
+  fetch("/api/transaction")
+    .then((response) => {
+      return response.json();
+    })
+    .then((data) => {
+      transactions = data;
 
-    populateTotal();
-    populateTable();
-    populateChart();
+      populateTotal();
+      populateTable();
+      populateChart();
+    });
+}
+function useIndexedDB(databaseName, storeName, method, object) {
+  return new Promise((resolve, reject) => {
+    const request = window.indexedDB.open(databaseName);
+    let db, tx, store;
+    request.onupgradeneeded = function (e) {
+      const db = request.result;
+      db.createObjectStore(storeName, { autoIncrement: true });
+    };
+    request.onerror = function (e) {
+      console.log("There was an error");
+    };
+    request.onsuccess = function (e) {
+      db = request.result;
+      tx = db.transaction(storeName, "readwrite");
+      store = tx.objectStore(storeName);
+      db.onerror = function (e) {
+        console.log("error");
+      };
+      if (method === "add") {
+        store.add(object);
+      }
+      if (method === "get") {
+        const all = store.getAll();
+        all.onsuccess = function () {
+          resolve(all.result);
+        };
+      }
+      if (method === "clear") {
+        store.clear();
+      }
+      tx.oncomplete = function () {
+        db.close();
+      };
+    };
   });
 }
-  function useIndexedDB(databaseName, storeName, method, object){
-    return new Promise((resolve, reject) => {
-      const request = window.indexedDB.open(databaseName);
-      let db,
-        tx,
-        store;
-      request.onupgradeneeded = function(e) {
-        const db = request.result;
-        db.createObjectStore(storeName, { autoIncrement : true });
-      };
-      request.onerror = function(e) {
-        console.log("There was an error");
-      };
-      request.onsuccess = function(e) {
-        db = request.result;
-        tx = db.transaction(storeName, "readwrite");
-        store = tx.objectStore(storeName);
-        db.onerror = function(e) {
-          console.log("error");
-        };
-        if (method === "add") {
-          store.add(object);
-        }
-        if (method === "get") {
-          const all = store.getAll();
-          all.onsuccess = function() {
-            resolve(all.result);
-          };
-        }
-        if (method === "clear"){
-          store.clear();
-        }
-        tx.oncomplete = function() {
-          db.close();
-        };
-      };
-    });
-  }
 
 function populateTotal() {
-  // reduce transaction amounts to a single total value
   let total = transactions.reduce((total, t) => {
     return total + parseInt(t.value);
   }, 0);
@@ -89,8 +84,7 @@ function populateTable() {
   let tbody = document.querySelector("#tbody");
   tbody.innerHTML = "";
 
-  transactions.forEach(transaction => {
-    // create and populate a table row
+  transactions.forEach((transaction) => {
     let tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${transaction.name}</td>
@@ -102,23 +96,19 @@ function populateTable() {
 }
 
 function populateChart() {
-  // copy array and reverse it
   let reversed = transactions.slice().reverse();
   let sum = 0;
 
-  // create date labels for chart
-  let labels = reversed.map(t => {
+  let labels = reversed.map((t) => {
     let date = new Date(t.date);
     return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
   });
 
-  // create incremental values for chart
-  let data = reversed.map(t => {
+  let data = reversed.map((t) => {
     sum += parseInt(t.value);
     return sum;
   });
 
-  // remove old chart if it exists
   if (myChart) {
     myChart.destroy();
   }
@@ -126,16 +116,18 @@ function populateChart() {
   let ctx = document.getElementById("myChart").getContext("2d");
 
   myChart = new Chart(ctx, {
-    type: 'line',
-      data: {
-        labels,
-        datasets: [{
-            label: "Total Over Time",
-            fill: true,
-            backgroundColor: "#6666ff",
-            data
-        }]
-    }
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Total Over Time",
+          fill: true,
+          backgroundColor: "#6666ff",
+          data,
+        },
+      ],
+    },
   });
 }
 
@@ -144,71 +136,60 @@ function sendTransaction(isAdding) {
   let amountEl = document.querySelector("#t-amount");
   let errorEl = document.querySelector(".form .error");
 
-  // validate form
   if (nameEl.value === "" || amountEl.value === "") {
     errorEl.textContent = "Missing Information";
     return;
-  }
-  else {
+  } else {
     errorEl.textContent = "";
   }
 
-  // create record
   let transaction = {
     name: nameEl.value,
     value: amountEl.value,
-    date: new Date().toISOString()
+    date: new Date().toISOString(),
   };
 
-  // if subtracting funds, convert amount to negative number
   if (!isAdding) {
     transaction.value *= -1;
   }
 
-  // add to beginning of current array of data
   transactions.unshift(transaction);
 
-  // re-run logic to populate ui with new record
   populateChart();
   populateTable();
   populateTotal();
-  
-  // also send to server
+
   fetch("/api/transaction", {
     method: "POST",
     body: JSON.stringify(transaction),
     headers: {
       Accept: "application/json, text/plain, */*",
-      "Content-Type": "application/json"
-    }
+      "Content-Type": "application/json",
+    },
   })
-  .then(response => {    
-    return response.json();
-  })
-  .then(data => {
-    if (data.errors) {
-      errorEl.textContent = "Missing Information";
-    }
-    else {
-      // clear form
+    .then((response) => {
+      return response.json();
+    })
+    .then((data) => {
+      if (data.errors) {
+        errorEl.textContent = "Please add additional";
+      } else {
+        nameEl.value = "";
+        amountEl.value = "";
+      }
+    })
+    .catch((err) => {
+      useIndexedDB("budgets", "trasactStore", "add", transaction);
+
       nameEl.value = "";
       amountEl.value = "";
-    }
-  })
-  .catch(err => {
-    // fetch failed, so save in indexed db
-    useIndexedDB("budgets","trasactStore", "add",transaction);
-
-    // clear form
-    nameEl.value = "";
-    amountEl.value = "";
-  });
+    });
 }
 
-document.querySelector("#add-btn").onclick = function() {
+document.querySelector("#add-btn").onclick = function () {
   sendTransaction(true);
 };
 
-document.querySelector("#sub-btn").onclick = function() {
+document.querySelector("#sub-btn").onclick = function () {
   sendTransaction(false);
 };
